@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+  <title>pubsubwebsocket</title>
+  <link rel="stylesheet" type="text/css" href="https://localhost:8443/pubsubwebsocket/resources/css/default.css">
+  <script type="text/javascript">
+      var wsocket;
+      function connect() {
+          wsocket = new WebSocket("wss://localhost:8443/pubsubwebsocket/app");
+          wsocket.onmessage = onMessage;
+      }
+      function onMessage(evt) {
+          var msg = evt.data;
+          document.getElementById("count").innerHTML = msg;
+      }
+      window.addEventListener("load", connect, false);
+  </script>
+</head>
+<body>
+    <h1>Simple pub sub websocket</h1>
+    <table>
+        <tbody><tr>
+            <td style="width:100px">Count: </td>
+            <td id="count" style="font-size:24pt;font-weight:bold;">43</td>
+        </tr>
+    </tbody></table>
+
+</body></html>
