@@ -1,9 +1,7 @@
 package com.headshot.pubsubwebsocket;
 
 import java.io.IOException;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Level;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import jakarta.websocket.OnClose;
@@ -20,8 +18,9 @@ import jakarta.websocket.server.ServerEndpoint;
 @ServerEndpoint("/app")
 public class AppEndpoint {
 
+	private static ConcurrentHashMap<String, Session> subs = new ConcurrentHashMap<String, Session>();
+
 	private static final Logger log = Logger.getLogger(AppEndpoint.class.getSimpleName());
-	private static Queue<Session> subs = new ConcurrentLinkedQueue<Session>();
 //	private static AppMessage store = new AppMessage();
 	static int ctr = 0;
 
@@ -32,50 +31,30 @@ public class AppEndpoint {
 //		String msg = store.toString();
 
 		String msg = String.valueOf(++ctr % 120);
-		try {
-			log.info("Publishing new update");
-			log.info("connections: " + subs.size());
-			for (Session session : subs) {
-				session.getBasicRemote().sendText(msg);
+
+		subs.values().parallelStream().forEach((i) -> {
+			try {
+				i.getBasicRemote().sendText(msg);
+			} catch (IOException e) {
+				log.severe(e.getMessage());
 			}
-		} catch (IOException e) {
-			log.log(Level.SEVERE, e.getMessage());
-		}
+		});
 	}
 
-	/**
-	 * O(1)
-	 * 
-	 * @param session
-	 * @param config
-	 */
 	@OnOpen
 	public void onopenconnection(Session session) {
-		// add to sub list
-		subs.add(session);
+		subs.put(session.getId(), session);
 		log.info("subscriber added");
 	}
 
-	/**
-	 * O(n)
-	 * 
-	 * @param session
-	 * @param config
-	 */
 	@OnClose
 	public void oncloseconnection(Session session) {
-		subs.remove(session);
+		subs.remove(session.getId());
 	}
 
-	/**
-	 * O(n)
-	 * 
-	 * @param session
-	 * @param t
-	 */
 	@OnError
 	public void error(Session session, Throwable t) {
-		subs.remove(session);
+		subs.remove(session.getId());
 		log.info(t.getMessage());
 		log.info("Connection error.");
 	}
