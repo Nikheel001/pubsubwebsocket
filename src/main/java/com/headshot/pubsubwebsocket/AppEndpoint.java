@@ -1,7 +1,9 @@
 package com.headshot.pubsubwebsocket;
 
+import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.websocket.OnClose;
@@ -20,15 +22,24 @@ public class AppEndpoint {
 
 	private static final Logger log = Logger.getLogger(AppEndpoint.class.getSimpleName());
 	private static Queue<Session> subs = new ConcurrentLinkedQueue<Session>();
-	private static AppMessage store = new AppMessage();
-	private static AppMessagePublishTask publishTask = new AppMessagePublishTask(subs, store);
-	private static Thread publisher;
+//	private static AppMessage store = new AppMessage();
+	static int ctr = 0;
 
-	public AppEndpoint() {
-		if (publisher == null) {
-			publisher = new Thread(publishTask);
-			publisher.setDaemon(true);
-			publisher.start();
+	/**
+	 * share updates to all client connections
+	 */
+	public static void publish() {
+//		String msg = store.toString();
+
+		String msg = String.valueOf(++ctr % 120);
+		try {
+			log.info("Publishing new update");
+			log.info("connections: " + subs.size());
+			for (Session session : subs) {
+				session.getBasicRemote().sendText(msg);
+			}
+		} catch (IOException e) {
+			log.log(Level.SEVERE, e.getMessage());
 		}
 	}
 

@@ -1,59 +1,36 @@
 package com.headshot.pubsubwebsocket;
 
-import java.io.IOException;
-import java.util.Queue;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import jakarta.websocket.Session;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
+import jakarta.ejb.Timeout;
+import jakarta.ejb.TimerConfig;
+import jakarta.ejb.TimerService;
 
 /**
  * 
  * @author nikheel.patel
  *
  */
-public class AppMessagePublishTask implements Runnable {
+@Startup
+@Singleton
+public class AppMessagePublishTask {
 
 	private static final Logger log = Logger.getLogger(AppMessagePublishTask.class.getSimpleName());
-	AppMessage store;
-	static int ctr = 0;
-	Queue<Session> subsref;
-	boolean status;
-	
-	public void setStatus(boolean status) {
-		this.status = status;
-	}
+	@Resource
+	TimerService tservice;
 
-	public AppMessagePublishTask(Queue<Session> subs, AppMessage msg) {
-		subsref = subs;
-		store = msg;
-		status = true;
-	}
-
+	@Timeout
 	void publish() {
-//		String msg = store.toString();
-
-		String msg = String.valueOf(++ctr%120);
-		try {
-			log.info("Publishing new update");
-			log.info("connections: " + subsref.size());
-			for (Session session : subsref) {
-				session.getBasicRemote().sendText(msg);
-			}
-		} catch (IOException e) {
-			log.log(Level.SEVERE, e.getMessage());
-		}
+		AppEndpoint.publish();
 	}
 
-	public void run() {
-		try {
-			while (status) {
-				publish();
-				Thread.sleep(1000);
-			}
-		} catch (InterruptedException e) {
-			log.log(Level.SEVERE, e.getMessage());
-		}
+	@PostConstruct
+	public void init() {
+		log.info("Initializing AppMessagePublishTask EJB.");
+		tservice.createIntervalTimer(1000, 1000, new TimerConfig());
 	}
-
 }
